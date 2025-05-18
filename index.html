@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Creative Responsive Sudoku Game</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
+
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    color: #2c2c2c;
+  }
+  h1 {
+    text-align: center;
+    margin: 1rem 0 0;
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(0,0,0,0.1);
+    color: #333;
+  }
+  main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0 3rem;
+  }
+  #sudoku-container {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem;
+    border-radius: 16px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.24);
+    max-width: 420px;
+    width: 100%;
+  }
+  #sudoku-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 2px;
+    user-select: none;
+  }
+  .cell {
+    background: #fff;
+    border: 1.5px solid #d3d3d3;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #4a4a4a;
+    outline: none;
+    border-radius: 6px;
+    transition: background-color 0.25s ease, color 0.25s ease;
+    padding: 0;
+    height: 36px;
+    width: 36px;
+    font-family: 'Poppins', sans-serif;
+  }
+  .cell:focus {
+    background: #ffd6e8;
+    color: #b30059;
+    box-shadow: 0 0 10px #ff69b4;
+    border-color: #ff69b4;
+  }
+  .cell[readonly] {
+    background: #f0f0f0;
+    font-weight: 700;
+    cursor: default;
+    color: #666;
+  }
+  /* Bold borders for 3x3 boxes */
+  .cell:nth-child(3n) {
+    border-right: 2.7px solid #b30059;
+  }
+  .cell:nth-child(n+19):nth-child(-n+27),
+  .cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 2.7px solid #b30059;
+  }
+  /* For left border of first column */
+  .cell:nth-child(9n + 1) {
+    border-left: 2.7px solid #b30059;
+  }
+  /* For top border of first row */
+  .cell:nth-child(-n + 9) {
+    border-top: 2.7px solid #b30059;
+  }
+
+  #buttons-container {
+    position: fixed;
+    bottom: 1.4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    max-width: 420px;
+    width: 100%;
+    justify-content: center;
+  }
+  button {
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    border: none;
+    padding: 0.65rem 1.3rem;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(255, 75, 43, 0.7);
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+    user-select: none;
+    flex: 1;
+    max-width: 120px;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  }
+  button:hover {
+    background: linear-gradient(45deg, #ff4b2b, #ff416c);
+    box-shadow: 0 8px 20px rgba(255, 65, 108, 0.9);
+  }
+  button:active {
+    transform: translateY(2px);
+    box-shadow: 0 4px 12px rgba(255, 75, 43, 0.8);
+  }
+
+  /* Modal styles */
+  .modal-overlay {
+    position: fixed;
+    top:0; left: 0; right:0; bottom:0;
+    background: rgba(44, 44, 44, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal {
+    background: #ff4b2b;
+    border-radius: 12px;
+    max-width: 320px;
+    width: 90%;
+    padding: 20px 30px;
+    box-shadow: 0 0 25px #ff416c;
+    color: #fff;
+    text-align: center;
+    font-weight: 600;
+  }
+  .modal button {
+    margin-top: 15px;
+    background-color: #fff;
+    color: #ff4b2b;
+    max-width: 100px;
+    font-weight: 700;
+    border-radius: 25px;
+    outline: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(255, 75, 43, 0.6);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .modal button:hover {
+    background-color: #ff416c;
+    color: white;
+  }
+  .modal p {
+    line-height: 1.4;
+    font-size: 1rem;
+  }
+  @media (max-width: 420px) {
+    #sudoku-container {
+      max-width: 360px;
+    }
+    .cell {
+      font-size: 0.9rem;
+      height: 32px;
+      width: 32px;
+    }
+    #buttons-container {
+      max-width: 360px;
+    }
+    button {
+      max-width: 100px;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+<h1>Sudoku Challenge</h1>
+<main>
+  <section id="sudoku-container" aria-label="Sudoku puzzle">
+    <div id="sudoku-grid" aria-live="polite" aria-label="Sudoku grid" role="grid"></div>
+  </section>
+</main>
+<div id="buttons-container">
+  <button id="hint-btn" aria-label="Get a hint for solving the puzzle">Hint (3)</button>
+  <button id="submit-btn" aria-label="Submit your Sudoku solution">Submit</button>
+  <button id="next-btn" aria-label="Load next Sudoku puzzle">Next</button>
+</div>
+
+<div id="modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
+  <div class="modal">
+    <p id="modal-desc"></p>
+    <button id="modal-close" aria-label="Close modal">Close</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const puzzles = [
+    {
+      puzzle:
+        "530070000600195000098000060800060003400803001700020006060000280000419005000080079",
+      solution:
+        "534678912672195348198342567859761423426853791713924856961537284287419635345286179",
+      hints: [
+        "Look for rows or columns that have many numbers filled-in first.",
+        "Focus on the first 3x3 box: try filling in missing digits by elimination.",
+        "Check for cells with only one possible digit.",
+      ],
+    },
+    {
+      puzzle:
+        "600120384008459072000006005000264030070080006940003000310000050089700000502000190",
+      solution:
+        "645127389318459672279836415581264937472985164946713258736592841894371526527648193",
+      hints: [
+        "Try scanning columns to find unique digits.",
+        "Use pencil marks to guess possible numbers for tricky spots.",
+        "Look carefully at the middle left box for easy placements.",
+      ],
+    },
+    {
+      puzzle:
+        "000000907000420180000705026100904000050000040000507009920108000034059000507000000",
+      solution:
+        "483651927576429183219735426167984352358612749294573619925148637634259871517367294",
+      hints: [
+        "Start with the easier boxes with most numbers filled in.",
+        "Remember each number 1-9 can only appear once per row, column, and box.",
+        "Focus on the middle box, it has several clues to help.",
+      ],
+    },
+    {
+      puzzle:
+        "020030090008007030000600500000040000500068000000302000000100000604700020090005010",
+      solution:
+        "125834697968517234347692518739241865581768429464395172873149256654723981291586743",
+      hints: [
+        "Look at the fourth row – only a few empty cells remain.",
+        "Check possibilities for the top-right 3x3 box.",
+        "Remember to cross-check rows and columns for unique candidates.",
+      ],
+    },
+    {
+      puzzle:
+        "000000000000601020070300500000000000300050001000000000008009040020700100000000000",
+      solution:
+        "284975361356681429971324586145798273387256914629143857798519642432467198561832745",
+      hints: [
+        "Try filling numbers that appear only once in a row or box.",
+        "Use logic to eliminate impossible candidates per cell.",
+        "Look closely at the middle 3x3 box for placement hints.",
+      ],
+    },
+  ];
+
+  const grid = document.getElementById("sudoku-grid");
+  const hintBtn = document.getElementById("hint-btn");
+  const submitBtn = document.getElementById("submit-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const modal = document.getElementById("modal");
+  const modalDesc = document.getElementById("modal-desc");
+  const modalClose = document.getElementById("modal-close");
+
+  let currentPuzzleIndex = 0;
+  let hintsLeft = 3;
+  let isSubmitted = false;
+
+  // Render puzzle on grid
+  function renderPuzzle(puzzleStr) {
+    grid.innerHTML = "";
+    for (let i = 0; i < 81; i++) {
+      const val = puzzleStr[i];
+      const cell = document.createElement("input");
+      cell.type = "text";
+      cell.maxLength = 1;
+      cell.className = "cell";
+      cell.setAttribute("role", "gridcell");
+      cell.setAttribute("aria-label", `Cell row ${Math.floor(i/9)+1}, column ${i%9+1}`);
+      if (val === "0") {
+        cell.value = "";
+        cell.readOnly = false;
+        cell.autocomplete = "off";
+        cell.inputMode = "numeric";
+        // restrict input to digits 1-9 only later handled 
+      } else {
+        cell.value = val;
+        cell.readOnly = true;
+        cell.tabIndex = -1;
+      }
+      // Handle input validation on user input
+      cell.addEventListener("input", onInput);
+      grid.appendChild(cell);
+    }
+    isSubmitted = false;
+  }
+
+  // Validate input to accept only digits 1-9
+  function onInput(e) {
+    const val = e.target.value;
+    if (!/^[1-9]$/.test(val)) {
+      e.target.value = "";
+    }
+  }
+
+  // Show modal with message
+  function showModal(message) {
+    modalDesc.textContent = message;
+    modal.style.display = "flex";
+    modalClose.focus();
+  }
+  // Hide modal
+  function closeModal() {
+    modal.style.display = "none";
+  }
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.style.display === "flex") {
+      closeModal();
+    }
+  });
+
+  // Use hint action with limited usage
+  hintBtn.addEventListener("click", () => {
+    if (hintsLeft <= 0) {
+      showModal("Sorry, you have used all 3 hints for this puzzle.");
+      return;
+    }
+    const hint = puzzles[currentPuzzleIndex].hints[3 - hintsLeft];
+    showModal(`Hint: ${hint}`);
+    hintsLeft--;
+    hintBtn.textContent = `Hint (${hintsLeft})`;
+  });
+
+  // Submit action fixed with event listener updated
+  submitBtn.addEventListener("click", () => {
+    if (isSubmitted) {
+      showModal("You have already submitted this puzzle. Please click Next for a new game.");
+      return;
+    }
+    // Custom confirm modal instead of window.confirm for consistent UX
+    const confirmed = window.confirm("Do you really want to submit your solution?");
+    if (!confirmed) return;
+
+    // Calculate score
+    const userInputs = Array.from(grid.querySelectorAll("input.cell"));
+    const solution = puzzles[currentPuzzleIndex].solution;
+    let correctCount = 0;
+    const totalCells = 81;
+
+    userInputs.forEach((cell, i) => {
+      const userVal = cell.value;
+      if (userVal === solution[i]) {
+        correctCount++;
+      }
+    });
+
+    const scorePercent = Math.round((correctCount / totalCells) * 100);
+
+    // Show solution on grid
+    for (let i = 0; i < totalCells; i++) {
+      const cell = userInputs[i];
+      cell.value = solution[i];
+      cell.readOnly = true;
+      cell.style.backgroundColor = "";
+      // Highlight wrong cells with red color if user input was incorrect
+      if (cell.value !== puzzles[currentPuzzleIndex].puzzle[i] && cell.value !== solution[i]) {
+        cell.style.backgroundColor = "#ffdddd";
+      }
+      if (cell.value !== solution[i]) {
+        cell.style.color = "#d32f2f"; // red for wrong
+      } else {
+        cell.style.color = "#388e3c"; // green for correct
+      }
+    }
+
+    showModal(`You scored ${scorePercent}%. The correct solution has been revealed. Try the next puzzle!`);
+    isSubmitted = true;
+  });
+
+  // Load next puzzle action
+  nextBtn.addEventListener("click", () => {
+    currentPuzzleIndex = (currentPuzzleIndex + 1) % puzzles.length;
+    hintsLeft = 3;
+    hintBtn.textContent = `Hint (${hintsLeft})`;
+    isSubmitted = false;
+    renderPuzzle(puzzles[currentPuzzleIndex].puzzle);
+  });
+
+  // Initial load
+  renderPuzzle(puzzles[currentPuzzleIndex].puzzle);
+})();
+</script>
+</body>
+</html>
+
